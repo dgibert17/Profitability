@@ -1,0 +1,29 @@
+---
+title: "Profitability"
+author: "David Gibert Bosque"
+date: "October, 2018"
+output: html_document
+---
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+
+```{r}
+rm(list = ls())
+```
+
+```{r message=FALSE, warning=FALSE, include=FALSE}
+## Loading datasets & transforming to .Rdata for efficiency reasons ##
+
+setwd("/home/david/Documents/datasets/profitability/")
+
+# existing = read.csv("existing.csv", sep = ",")
+# new = read.csv("new.csv", sep = ",")
+
+# save(existing, file = "existing.Rdata")
+# save(new, file = "new.Rdata")
+
+load(file = "existing.Rdata")
+load(file = "new.Rdata")
+```
+
