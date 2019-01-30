@@ -1,15 +1,21 @@
 ---
 title: "Profitability"
 author: "David Gibert Bosque"
-date: "October, 2018"
-output: html_document
+date: "February, 2019"
+output:
+  rmdformats::readthedown:
+    highlight: tango
 ---
+```{r include=FALSE}
+rm(list = ls())
+```
+
 ```{r setup, include=FALSE}
 knitr::opts_chunk$set(echo = TRUE)
 ```
 
-```{r}
-rm(list = ls())
+```{r include=FALSE}
+pacman::p_load(dplyr)
 ```
 
 ```{r message=FALSE, warning=FALSE, include=FALSE}
@@ -26,4 +32,88 @@ setwd("/home/david/Documents/datasets/profitability/")
 load(file = "existing.Rdata")
 load(file = "new.Rdata")
 ```
+
+## Summary of the project
+Exploratory and Machine Learning process in order to predict the volume sales of new products so we can calculate the profitability of those new items introduced to the company portfolio.
+
+## Looking at the structure of the data
+```{r}
+glimpse(existing)
+```
+**List of "TO DO" things to start with: **
+
+1) *Adapting attribute names to something more comfortable*
+2) *ProductID to factor & cheking it is unique for each observation*
+3) *Best.Seller.Rank to factor and studying NA values*
+4) *Depth, Width and Height to create Surface*
+5) **LATER: Applying the same transformations to dataset NEW**
+
+```{r}
+names(existing) = c("type", "id", "price", "stars_5", "stars_4", "stars_3", "stars_2", "stars_1", "pos_service", "neg_service", "would_recommend", "bestSeller_rank", "weight", "depth", "width", "height", "profit_margin", "volume")
+
+existing$id = factor(existing$id)
+existing$bestSeller_rank = factor(existing$bestSeller_rank)
+
+existing$surface = (existing$depth^2)+(existing$height^2)+(existing$width^2)
+
+glimpse(existing)
+```
+
+## Looking at the summary of the attributes
+```{r}
+summary(existing)
+```
+
+## Do all the products have unique ID's?
+```{r}
+if (length(unique(existing$id)) == nrow(existing)) {
+  print(paste("There are", length(unique(existing$id)), "unique ID values out of", nrow(existing), "observations."))
+  } else { (print("CHECK: There is at least 1 repeated ID value in the 80 observations."))
+}
+```
+
+## Is the best sellers rank field meaningful?
+```{r}
+barplot(table(existing$bestSeller_rank), main = "Amount of products\nby rank", col = "purple", xlab = "Rank", ylab = "Number of products")
+
+sum(is.na(existing$bestSeller_rank))
+```
+*Rank value is not unique for each product. Attribute meaning is not clear. Later on, we will decide if the attribute is worth keeping or not, by applying a matrix correlation and a decision tree. Also, there are 15 NA values.*
+
+## Price, Service review and User Recommendation histograms
+```{r}
+par(mfrow = c(2,2))
+
+hist(existing$price, col = "purple", xlab = "Price €", main = "Histogram of Price")
+hist(existing$would_recommend, col = "purple", xlab = "Would recommend?\n0 No, 1 Yes", main = "Histogram of user recommend")
+hist(existing$pos_service, col = "purple", xlab = "Positive review", main = "Histogram of positive service")
+hist(existing$neg_service, col = "purple", xlab = "Negative review", main = "Histogram of negative service")
+
+par(mfrow = c(1,1))
+```
+
+* *Most of the products cost up to 500 €, there are some products which cost more than 1000 €*
+* *Most of the products are recommended by the users*
+* *Overall, there are more positive reviews for service than negative ones*
+
+## Studying the dependent variable: VOLUME
+```{r}
+boxplot(existing$volume, col = "purple", varwidth = F)
+```
+
+*We can see there are a couple of outliers. Let's check which type of items are they.*
+
+```{r}
+existing %>%
+  filter(volume >= 2500) %>%
+  select(type, volume)
+```
+*An accesory and a game console are selling many units. We will not remove these outliers right now. When doing the machine learning process to predict Volume, the error metrics using the outliers and removing them will be checked in order to see what works better.*
+
+## Matrix correlation
+```{r}
+
+```
+
+
 
