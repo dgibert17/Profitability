@@ -1,5 +1,5 @@
 ---
-title: "Profitability"
+title: "Predicting volume sales for new stock items and calculating their profitability"
 author: "David Gibert Bosque"
 date: "February, 2019"
 output:
@@ -15,13 +15,13 @@ knitr::opts_chunk$set(echo = TRUE)
 ```
 
 ```{r include=FALSE}
-pacman::p_load(dplyr)
+pacman::p_load(dplyr, corrplot, PerformanceAnalytics)
 ```
 
 ```{r message=FALSE, warning=FALSE, include=FALSE}
 ## Loading datasets & transforming to .Rdata for efficiency reasons ##
 
-setwd("/home/david/Documents/datasets/profitability/")
+setwd("/home/david/Projects/Profitability/datasets/")
 
 # existing = read.csv("existing.csv", sep = ",")
 # new = read.csv("new.csv", sep = ",")
@@ -36,7 +36,7 @@ load(file = "new.Rdata")
 ## Summary of the project
 Exploratory and Machine Learning process in order to predict the volume sales of new products so we can calculate the profitability of those new items introduced to the company portfolio.
 
-## Looking at the structure of the data
+### Looking at the structure of the data
 ```{r}
 glimpse(existing)
 ```
@@ -64,7 +64,7 @@ glimpse(existing)
 summary(existing)
 ```
 
-## Do all the products have unique ID's?
+### Do all the products have unique ID's?
 ```{r}
 if (length(unique(existing$id)) == nrow(existing)) {
   print(paste("There are", length(unique(existing$id)), "unique ID values out of", nrow(existing), "observations."))
@@ -72,7 +72,7 @@ if (length(unique(existing$id)) == nrow(existing)) {
 }
 ```
 
-## Is the best sellers rank field meaningful?
+### Is the best sellers rank field meaningful?
 ```{r}
 barplot(table(existing$bestSeller_rank), main = "Amount of products\nby rank", col = "purple", xlab = "Rank", ylab = "Number of products")
 
@@ -106,14 +106,53 @@ boxplot(existing$volume, col = "purple", varwidth = F)
 ```{r}
 existing %>%
   filter(volume >= 2500) %>%
-  select(type, volume)
+  select(type, volume) %>%
+  knitr::kable()
 ```
+
 *An accesory and a game console are selling many units. We will not remove these outliers right now. When doing the machine learning process to predict Volume, the error metrics using the outliers and removing them will be checked in order to see what works better.*
 
-## Matrix correlation
+## Correlation matrices
+### Correlation matrix ALL attributes
 ```{r}
-
+mat = as.matrix(existing[, -c(1:2, 12)])
+corr_mat = cor(mat)
+corrplot(corr = corr_mat, diag = F)
 ```
+
+*The attributes that have bigger correlation with Volume are Star Reviews and positive service. Keep in mind that correlation here is linear, any quadratic correlation will not be shown in this matrix.*
+
+*Also, it looks like there is collinearity between Star reviews attributes. Further investigation and decisions will avoid bias on our model later on.*
+
+### Correlation matrix Star reviews and Volume
+#### Studying correlation and collinearity
+```{r}
+mat_stars = as.matrix(existing[,c(4:8, 18)])
+star_corr_mat = cor(mat_stars)
+corrplot(corr = star_corr_mat, diag = F, method = "number")
+```
+
+*Volume and 5 star have a too-high correlation index. Basically, a correlation of 1 means that knowing the amount of 5 stars reviews of an item, we now exactly its sales volume, which does not make any sense in the real world. It is true that the more positive reviews an item has, the more it will sell, but not to the point where the amount of sales for any item is determined 100% on its 5 star reviews. In short words, there is something funny on the 5 star reviews values and we cannot use this data for later predictions.*
+
+#### For tat reason, 5 star reviews attribute will be removed completely, and some feature engineering will be carried on the other star reviews attributes, aswell as in other fields, like we did creating the Surface attribute using the Depth, Height and Width.
+
+#### Feature engineering will allow us to avoid collinearity among attributes and improve correlation and machine learning processes.
+
+## Feature engineering
+```{r}
+existing = existing[, -c(2, 4, 13:16)] #Removing attributes that are not useful
+names(existing)
+
+existing$reviews_43 = existing$stars_4 + existing$stars_3
+existing$reviews_21 = existing$stars_2 + existing$stars_1
+existing$reviews_4321 = existing$stars_4 + existing$stars_3 + existing$stars_2 + existing$stars_1
+existing$total_service_reviews = existing$pos_service + existing$neg_service
+existing$total_positive_reviews = existing$stars_4 + existing$stars_3 + existing$pos_service
+existing$total_negative_reviews = existing$stars_2 + existing$stars_1 + existing$neg_service
+
+names(existing)
+```
+
 
 
 
