@@ -15,13 +15,13 @@ knitr::opts_chunk$set(echo = TRUE)
 ```
 
 ```{r include=FALSE}
-pacman::p_load(dplyr, corrplot, PerformanceAnalytics)
+pacman::p_load(dplyr, corrplot, PerformanceAnalytics, rpart, rpart.plot)
 ```
 
 ```{r message=FALSE, warning=FALSE, include=FALSE}
 ## Loading datasets & transforming to .Rdata for efficiency reasons ##
 
-setwd("/home/david/Projects/Profitability/datasets/")
+setwd("C:/Projects/Profitability/datasets/")
 
 # existing = read.csv("existing.csv", sep = ",")
 # new = read.csv("new.csv", sep = ",")
@@ -139,9 +139,9 @@ corrplot(corr = star_corr_mat, diag = F, method = "number")
 #### Feature engineering will allow us to avoid collinearity among attributes and improve correlation and machine learning processes.
 
 ## Feature engineering
+#### Let's create a bunch of attributes and see if they have better a correlation with "volume"
 ```{r}
 existing = existing[, -c(2, 4, 13:16)] #Removing attributes that are not useful
-names(existing)
 
 existing$reviews_43 = existing$stars_4 + existing$stars_3
 existing$reviews_21 = existing$stars_2 + existing$stars_1
@@ -154,5 +154,58 @@ names(existing)
 ```
 
 
+* *reviews_43* = Sum of `4 star & 3 star` attributes
+* *reviews_21* = Sum of `2 star & 1 star` attributes
+* *reviews_4321* = Sum of `4, 3, 2 & 1 star` attributes
+* *total_service_reviews* = Sum of `positive` & `negative service` attributes
+* *total_positive_reviews* = Sum of `4, 3 star` reviews and `positive service`
+* *total_negative_reviews* = Sum of `2, 1 star` reviews and `negative service`
 
+## Correlation matrix with newly created attributes
+```{r}
+mat_stars = as.matrix(existing[, -c(1, 10)])
+star_corr_mat = cor(mat_stars)
+corrplot(corr = star_corr_mat, diag = F, method = "number", number.cex = 0.5)
+```
+
+**Let's study this correlation matrix:**
+
+*There are a lot of attributes now, correlated somehow with `volume`. We need to filter which attributes will be the best ones to work with for `volume` prediction.*
+
+*Higher correlated attributes with `volume` are `4 star`, `3 star`, `positive service`, `4+3 star`, `total_service` and `total_positive`. What happens here is that we have a collinearity issue we have to fix here.*
+
+*`4 star` is very correlated with `volume`, but also with `3 star`, `4+3 star` & `total positive reviews`. This means that these variables "explain" the same information. We do not want to keep all of them to avoid biasing our models later. We want to keep as much of that information as possible, so, we will keep the attribute that is more corretaled with `volume` that has no high correlation with other attributes at the same time. This means that, in this case, we will stick with `4 star` and will not use `3 star`, `4+3 star` & `total positive review`.*
+
+*Must be said, though, that a correlation matrix only shows linear correlation between attributes, meaning that if there is some kind of quadratic correlation between `volume` and other attribute, it will not appear in the matrix correlation (correlation will be 0 or close to 0). In order to study other kinds of correlation rather than linear, we can use a Random Forest.*
+
+## Let's build a Random Forest in order to see how the attributes distribute the information for the variable `volume`.
+#### Attributes used are `price` + `stars_4` + `pos_service` + `neg_service` + `would_recommend` + `reviews_21`
+```{r message=FALSE, warning=FALSE, include=FALSE, paged.print=FALSE}
+RF_all = rpart(formula = volume~., data = existing)
+summary_RF_all = summary(RF_all)
+
+RF_some = rpart(formula = volume~ price + stars_4 + pos_service + neg_service + would_recommend + reviews_21, data = existing)
+summary_RF_some = summary(RF_some)
+```
+
+```{r}
+summary_RF_some$variable.importance
+
+rpart.plot(RF_some, type = 5, shadow.col = "black")
+```
+
+*We can see that the variable importance for the RF plot above defines `4 star`, `2+1 reviews`, `neg_service` & `pos_service` as the most important ones. This only means that each of these attributes appears many times in the Random Forest (they each appear many times in each tree in the random forest).*
+
+**What really tells about importance is the plot, that shows which attributes are the most important ones for splitting the data, and those are `4 star` and `positive service`.**
+
+#### Let's compare this random forest (built with some attributes) with a random forest using all the original attributes plus created ones at feature engineering section.
+```{r}
+summary_RF_all$variable.importance
+
+rpart.plot(RF_all, type = 5, shadow.col = "black")
+```
+
+*We can see that the variable importance defines the same atributes than the last Random Forest. Also, the plot shows the same attributes for splitting the data.*
+
+**Based on the correlation matrix and Random Forest approach, our final decision on which attributes are to be selected for predicting `volume` are `4 star` and `positive service`.**
 
