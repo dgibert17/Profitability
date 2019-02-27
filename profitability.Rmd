@@ -208,4 +208,39 @@ rpart.plot(RF_all, type = 5, shadow.col = "black")
 *We can see that the variable importance defines the same atributes than the last Random Forest. Also, the plot shows the same attributes for splitting the data.*
 
 **Based on the correlation matrix and Random Forest approach, our final decision on which attributes are to be selected for predicting `volume` are `4 star` and `positive service`.**
+```{r}
+existing_2attributes = existing %>%
+  select(stars_4, pos_service, volume)
+```
 
+
+## Machine Learning process. Predicting `Volume` sales.
+#### We will be using LM, RF, KNN and SVM, then deciding which one works better and analysing the error later on.
+
+#### Linear Regression
+```{r}
+
+```
+
+#### Random Forest
+```{r}
+
+```
+
+#### K-nearest neighbours
+```{r}
+
+```
+
+#### Support Vector Machine
+```{r}
+
+```
+
+
+```{r}
+new_2attributes = new %>%
+  select(X.4.Star.Reviews., X.Positive.Service.Review.) %>%
+  transmute(stars_4 = as.integer(X.4.Star.Reviews.),
+            pos_service = as.integer(X.Positive.Service.Review.))
+```
