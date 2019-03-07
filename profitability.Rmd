@@ -15,7 +15,7 @@ knitr::opts_chunk$set(echo = TRUE)
 ```
 
 ```{r include=FALSE}
-pacman::p_load(dplyr, corrplot, PerformanceAnalytics, rpart, rpart.plot)
+pacman::p_load(dplyr, corrplot, PerformanceAnalytics, rpart, rpart.plot, Metrics, knitr, randomForest, caret, e1071)
 ```
 
 ```{r message=FALSE, warning=FALSE, include=FALSE}
@@ -217,25 +217,63 @@ existing_2attributes = existing %>%
 ## Machine Learning process. Predicting `Volume` sales.
 #### We will be using LM, RF, KNN and SVM, then deciding which one works better and analysing the error later on.
 
+## partitioning data
+```{r}
+set.seed(123)
+
+sample = sample.int(n = nrow(existing_2attributes),
+                    size = floor(0.80*nrow(existing_2attributes)),
+                    replace = F)
+
+train = existing_2attributes[sample, ]
+test = existing_2attributes[-sample, ]
+```
+
 #### Linear Regression
 ```{r}
-
+lm_fit = lm(formula = volume~., data = train)
+summary(lm_fit)
 ```
+
+*We can see how both independent variables are statistically significant, which means that changes on them affect to the dependant variable. Next step is predicting `volume`.*
+
+```{r}
+lm_pred = predict(object = lm_fit, newdata = test)
+lm_pred
+```
+
+*Those are the predicted volume sales for the test products using a linear model. Let's build the other models, then we will compare the error metrics in a matrix and will proceed to th enext step.*
 
 #### Random Forest
 ```{r}
-
+rf_fit = randomForest(volume~., data = train)
+rf_pred = predict(object = rf_fit, newdata = test)
 ```
 
 #### K-nearest neighbours
 ```{r}
-
+knn_fit = caret::knnreg(formula = volume~., data = train, k = 3)
+knn_pred = predict(object = knn_fit, newdata = test)
 ```
 
 #### Support Vector Machine
 ```{r}
-
+svm_fit = svm(formula = volume~., data = train)
+svm_pred = predict(object = svm_fit, newdata = test)
 ```
+
+## Error matrix comparison
+```{r}
+error.matrix = matrix(nrow = 4, ncol = 3,
+                      dimnames = list(c("LM", "RF", "KNN", "SVM"),
+                                      c("RMSE", "MAE", "MDAE")))
+kable(error.matrix)
+
+# rmse(actual = test$volume, predicted = lm_pred)
+# mae(actual = test$volume, predicted = lm_pred)
+# mdae(actual = test$volume, predicted = lm_pred)
+```
+
 
 
 ```{r}
